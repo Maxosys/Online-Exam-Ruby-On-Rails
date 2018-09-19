@@ -1,0 +1,424 @@
+<div class="ptextclass">
+  <div id="page-wrapper">
+    <h2>Test Start</h2>
+    <div class="table-list">
+      <div class="filediv">
+        <div class="table-responsive">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>S.NO</th>
+                <th>Test Name</th>
+                <th>Assign By</th>
+                <th>Duration</th>
+                <th>Total Marks</th>
+                <th>Instruction</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+
+            <tbody>
+            
+              <% 
+                
+                if @listOfAssignTest.present? 
+
+                s = 1
+                
+                    @listOfAssignTest.each do |key|
+
+                      
+                      test_id = key.test_id
+
+                      @getTestData = OnlineTestName.find(test_id)
+                      @teacherData = User.find(@getTestData.uid)
+
+                %>          
+
+                <tr>
+                  <td><%=s%></td>
+                  <td> <%=  @getTestData.test_name %> </td>
+                  <td> <%=  @teacherData.firstname %> <%=  @teacherData.lastname %> </td>
+                  <td> <%=  @getTestData.test_duration  %> Hour </td>
+                  <td> <%=  @getTestData.total_marks  %></td>
+                  <td> <%=  @getTestData.test_description  %></td>
+                  <td><a href="<%= request.base_url%>/start-test/<%=key.test_id%>">START</a> </td>
+                </tr> 
+
+                <% 
+
+                s = s+1
+                end
+
+                else '<div class="list-group-item list-group-item-action"> Not Found :Any Assign Test</div>' end
+
+                %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <% if params[:tid].present? %>
+      <script type="text/javascript">   $(".filediv:first").hide();    </script> 
+
+      <div class="filediv">
+        <div class="counterdiv"> 
+          <div class="divwrapper">
+            <h3> <%= @online_test_name.test_name %> </h3> 
+            <div id="counttimer">Start</div> 
+          </div>
+        </span>
+        
+        <div class="quiz-container">
+          <div id="quiz"></div>
+        </div>
+        <button class="btn" id="previous">Previous Question</button>
+        <button class="btn" id="next">Next Question</button>
+        <button class="btn" id="submit">Submit Quiz</button>
+        <div id="results" class="resultsclass btn"></div>
+      </div>
+
+  
+      <%  
+
+          @question_str = ''
+          @test_questions_data.each do |key|  
+           
+            
+            @test_questions = key
+
+            test_id     = key.testid
+            qid         = key.id
+            uid         = key.uid
+            qus_type    = @test_questions.qus_type
+            question    = @test_questions.question
+            ans1        = @test_questions.ans1
+            ans2        = @test_questions.ans2
+            ans3        = @test_questions.ans3
+            ans4        = @test_questions.ans4
+            correctans  = @test_questions.correctans
+
+           if qus_type == "imgtype"
+           
+          @question_str.concat("{
+                question: '"+question+"',
+                test_id: '"+test_id.to_s+"',
+                qid: '"+qid.to_s+"',
+                uid: '"+uid.to_s+"',
+                answers: {
+                  a: '<img src="'../assets/examfiles/'+ans1+" />',
+                  b: '<img src="'../assets/examfiles/'+ans2+" />',
+                  c: '<img src="'../assets/examfiles/'+ans3+" />',
+                  d: '<img src="'../assets/examfiles/'+ans4+" />'
+                },
+                correctAnswer: '"+correctans+"'
+              },")
+
+           else
+ 
+            @question_str.concat("{
+                question: '"+question+"',
+                test_id: '"+test_id.to_s+"',
+                qid: '"+qid.to_s+"',
+                uid: '"+uid.to_s+"',
+                answers: {
+                  a: '"+ans1+"',
+                  b: '"+ans2+"',
+                  c: '"+ans3+"',
+                  d: '"+ans4+"'
+                },
+                correctAnswer: '"+correctans+"'
+              },")
+
+                end
+
+                end
+
+          %> 
+
+
+          <script type="text/javascript">
+            const test_id_get         =  <%=params[:tid]%>
+
+             //alert(test_id_get);
+
+             var count = <%=@online_test_name.test_duration%> * 60 * 60;
+
+             var totalSec     = count;
+             var secnumber    = 60;
+             var countMin     = 0;
+             var totalHous    = <%=@online_test_name.test_duration%>;
+
+             var interval      = setInterval(function(){
+
+              if(secnumber == 60) {
+                  secnumber =  60;
+              }
+
+              if(secnumber == 0) {
+                secnumber = 60;
+                countMin++;
+              }
+              
+              if(countMin>=60) {
+                countMin =0;
+                totalHous--;
+              }
+
+               var setTimeH = count/3600;
+               var setTimeM = (totalSec/60) - countMin;
+               var setTimeS = secnumber;
+
+              if(setTimeH<1) {
+
+                setTimeH = 00;
+              
+              }  else  {
+
+                setTimeH = totalHous;
+              }
+
+              document.getElementById('counttimer').innerHTML= setTimeH+': '+ setTimeM +' :'+setTimeS;  
+
+              count--;
+              secnumber--;  
+
+              if (count === 0){
+
+                clearInterval(interval);
+                document.getElementById('counttimer').innerHTML='Done';
+                // or...
+
+                $("#previous").remove();
+                $("#next").remove();
+                $("#submit").show();
+                alert("You're out of time!");
+              }
+               }, 1000);
+
+
+
+            (function() {
+
+            const myQuestions = [<%= raw @question_str%>];
+
+            //const myQuestions = <%= @chromosomes.to_json %>;
+
+            function buildQuiz() {
+              // we'll need a place to store the HTML output
+              const output = [];
+
+              // for each question...
+              myQuestions.forEach((currentQuestion, questionNumber) => {
+                // we'll want to store the list of answer choices
+                const answers = [];
+
+                // and for each available answer...
+                for (letter in currentQuestion.answers) {
+                  // ...add an HTML radio button
+                  answers.push(
+                    `<label>
+                       <input type="radio" name="question${questionNumber}" value="${letter}">
+                        ${letter} :
+                        ${currentQuestion.answers[letter]}
+                     </label>`
+                  );
+                }
+
+                // add this question and its answers to the output
+                output.push(
+                  `<div class="slide">
+                     <div class="question"> ${currentQuestion.question} </div>
+                     <div class="answers"> ${answers.join("")} </div>
+                   </div>`
+                );
+              });
+
+              // finally combine our output list into one string of HTML and put it on the page
+              quizContainer.innerHTML = output.join("");
+            }
+
+            function showResults() {
+
+              // insert final submit
+
+
+                var slideNumber         = currentSlide;
+
+                // Get selected Answer
+                  
+                  const answerContainersW = quizContainer.querySelectorAll(".answers");
+                  var answerContainerW    = answerContainersW[slideNumber];
+                  const selectorW         = `input[name=question${slideNumber}]:checked`;
+                  const userAnswerW       = (answerContainerW.querySelector(selectorW) || {}).value;
+                  
+                  var selectedAns         = userAnswerW;
+
+                  // Get Selected Question Details       
+
+                    var questionJson        = myQuestions[currentSlide];
+
+                    questionJson["selected_ans"] =  selectedAns;
+                    questionJson["lastsubmit"] =  1;
+
+                    //console.log(questionJson);
+
+                    $('#dimScreen').show();
+                    $('.loaderajaxprocess').show();
+
+                        $.ajax({
+                        type: "POST",
+                        beforeSend: function(xhr) {xhr.setRequestHeader('X-CSRF-Token', $('meta[name="csrf-token"]').attr('content'))},
+                        url:base_url+'/submit_result',
+                        data: questionJson,
+                        success: function(resp)
+                        {
+                          $('#dimScreen').hide();
+                          $('.loaderajaxprocess').hide();
+                             if(resp !=3)
+                             {
+
+                               $("#previous").remove();
+                               $("#next").remove();
+                              // $("#submit").remove();
+
+
+
+                      // gather answer containers from our quiz
+                      const answerContainers = quizContainer.querySelectorAll(".answers");
+
+                      // keep track of user's answers
+                      let numCorrect = 0;
+
+                      // for each question...
+                      myQuestions.forEach((currentQuestion, questionNumber) => {
+                        // find selected answer
+                        const answerContainer = answerContainers[questionNumber];
+                        const selector = `input[name=question${questionNumber}]:checked`;
+                        const userAnswer = (answerContainer.querySelector(selector) || {}).value;
+
+                        // if answer is correct
+                        if (userAnswer === currentQuestion.correctAnswer) {
+                          // add to the number of correct answers
+                          numCorrect++;
+
+                          // color the answers green
+                          answerContainers[questionNumber].style.color = "lightgreen";
+                        } else {
+                          // if answer is wrong or blank
+                          // color the answers red
+                          answerContainers[questionNumber].style.color = "red";
+                        }
+                      });
+
+                      // show number of correct answers out of total
+                      resultsContainer.innerHTML = `${numCorrect} out of ${myQuestions.length} <a href="${base_url}/view-results/${resp}">View Result</a>  `;
+
+
+                                         alert("Successfully Submitted");
+
+                                       }
+                                       else
+                                       {
+                                          alert("Please Submit Again");
+                                       }
+                                  }
+                            });
+
+                  // final submit end 
+
+                     
+
+
+                    }
+
+                    function showSlide(n) {
+                      slides[currentSlide].classList.remove("active-slide");
+                      slides[n].classList.add("active-slide");
+                      currentSlide = n;
+                      
+                      if (currentSlide === 0) {
+                        previousButton.style.display = "none";
+                      } else {
+                        previousButton.style.display = "inline-block";
+                      }
+                      
+                      if (currentSlide === slides.length - 1) {
+                        nextButton.style.display = "none";
+                        submitButton.style.display = "inline-block";
+                      } else {
+                        nextButton.style.display = "inline-block";
+                        submitButton.style.display = "none";
+                      }
+                    }
+
+                    function showNextSlide() {
+
+                  // insert On next Question 
+
+                      var slideNumber         = currentSlide;
+
+                    // Get selected Answer
+                      
+                      const answerContainersW = quizContainer.querySelectorAll(".answers");
+                      var answerContainerW    = answerContainersW[slideNumber];
+                      const selectorW         = `input[name=question${slideNumber}]:checked`;
+                      const userAnswerW       = (answerContainerW.querySelector(selectorW) || {}).value;
+                      
+                      var selectedAns         = userAnswerW;
+
+                    // Get Selected Question Details       
+
+                      var questionJson        = myQuestions[currentSlide];
+
+                      questionJson["selected_ans"] =  selectedAns;
+
+                      console.log(questionJson);    
+
+                       $.ajax({
+                                  type: "POST",
+                                  beforeSend: function(xhr) {xhr.setRequestHeader('X-CSRF-Token', $('meta[name="csrf-token"]').attr('content'))},
+                                  url:base_url+'/submit_result',
+                                  data: questionJson,
+                                  success: function(resp)
+                                  {
+                                       $('#subjectnames').html(resp);
+                                  }
+
+                            });
+                  // end 
+
+
+                      showSlide(currentSlide + 1);
+                    }
+
+                    function showPreviousSlide() {
+                      showSlide(currentSlide - 1);
+                    }
+
+                    const quizContainer = document.getElementById("quiz");
+                    const resultsContainer = document.getElementById("results");
+                    const submitButton = document.getElementById("submit");
+
+                    // display quiz right away
+                    buildQuiz();
+
+                    const previousButton = document.getElementById("previous");
+                    const nextButton = document.getElementById("next");
+                    const slides = document.querySelectorAll(".slide");
+                    let currentSlide = 0;
+
+                    showSlide(0);
+
+                    // on submit, show results
+                    submitButton.addEventListener("click", showResults);
+                    previousButton.addEventListener("click", showPreviousSlide);
+                    nextButton.addEventListener("click", showNextSlide);
+                  })();
+          </script>
+
+          <%  end  %>
+    </div>
+   </div>
+</div>
+

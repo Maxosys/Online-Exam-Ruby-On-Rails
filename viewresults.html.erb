@@ -1,0 +1,272 @@
+<% require "pdfkit" 
+
+%>
+
+ 
+<%
+    if params[:result_id].present?
+
+      user_id = @resultData.user_id 
+      test_id = @resultData.test_id 
+      attempted_no_of_qus = @resultData.attempted_no_of_qus 
+      correct_no_of_qus   = @resultData.correct_no_of_qus 
+      total_marks         = @resultData.total_marks 
+      grade               = @resultData.grade 
+      attempt_date        = @resultData.attempt_date 
+      qus_ids             = @resultData.qus_ids 
+      teacher_id          = @resultData.teacher_id 
+
+      @studentData   =  User.find(user_id)
+      @teacherData   =  User.find(teacher_id)
+      
+      @online_test_name = OnlineTestName.find(test_id)
+
+
+      # Create Array of Attempt questions and Answers
+
+            @arrayOfAttempQAns = qus_ids.split(",")
+
+            @createArray_quesid_ans = {}
+
+            @arrayOfAttempQAns.each do |val|
+
+              qus_ans = val.split("_")
+              
+              @createArray_quesid_ans[qus_ans[0]] = qus_ans[1]
+
+            end      
+
+      #get All Question
+
+            @test_questions_data = TestQuestion.where(:testid => test_id)
+
+            userid = user_id
+
+            user_pics = "#{userid}_" + 'orignal.' + 'jpg'
+
+%>
+      <% if File.exist?(Rails.root.join('app', 'assets', 'images', 'UserImages', 'profileuploads', user_pics)) %>
+        <% user_pic = "#{userid}_" + 'orignal.' + 'jpg' %>
+      <% else %>
+        <% user_pic = 'default_' + 'original.' + 'jpg' %>
+      <% end %>
+      
+      <div class="studentres">        
+        <div class="col-xs-12 col-sm-4 leftres">
+          <ul class="list-group">
+            <li class="list-group-item ">          
+                <%= image_tag('/assets/UserImages/profileuploads/'+ user_pic, title: "Students", alt: "") %>
+            </li>
+            <li class="list-group-item"> <label>Name:</label> <%=@studentData.firstname%> <%=@studentData.lastname%> </li>
+            <li class="list-group-item"> <label>Exam By:</label> <%=@teacherData.firstname%> <%=@teacherData.lastname%>  </li>
+            <li class="list-group-item"> <label>Attempt No. of Q.:</label> <%=attempted_no_of_qus%> </li>
+            <li class="list-group-item"> <label>Correct No. of Q.:</label> <%=correct_no_of_qus%> </li>
+            <li class="list-group-item"> <label>Total Marks:</label> <%=total_marks%>/<%=@online_test_name.total_marks%> </li>
+            <li class="list-group-item"> <label>Grade:</label> <%=grade%> </li>         
+          
+          </ul>
+        </div>
+
+
+        <div class="col-xs-12 col-sm-8 rightres">
+          <div class="attempt"> 
+              <h3>Attempt On: <%=attempt_date%></h3>
+              <span>
+                <a target="_BLANK" href="<%= request.base_url%>/assets/resultspdf/result_<%=user_id%>_<%=test_id%>.pdf">
+                  <i class="fa fa-file-pdf-o pdficonclass" aria-hidden="true"></i>
+                </a> 
+              </span>
+
+          </div>
+          <ul class="list-group">
+
+          <%
+
+          sno = 1
+                @test_questions_data.each do |key|  
+       
+        
+        @test_questions = key
+
+        test_id     = key.testid
+        qid         = key.id
+        uid         = key.uid
+        qus_type    = @test_questions.qus_type
+        question    = @test_questions.question
+        ans1        = @test_questions.ans1
+        ans2        = @test_questions.ans2
+        ans3        = @test_questions.ans3
+        ans4        = @test_questions.ans4
+        correctans  = @test_questions.correctans
+        marks_each  = @test_questions.marks_each
+
+      
+
+        qid =  qid.to_s
+
+          %>
+  
+
+
+          <li class="list-group-item">
+            <label><%=sno%>. <%=question%></label>
+            
+            <ul class="list-group innerlist">
+              
+              <% if qus_type == "imgtype" %>
+
+              <li class="list-group-item">a)  <img src="../assets/examfiles/<%=ans1%>" /> </li>
+              <li class="list-group-item">b)  <img src="../assets/examfiles/<%=ans2%>" /></li>
+              <li class="list-group-item">c)  <img src="../assets/examfiles/<%=ans3%>" /> </li>
+              <li class="list-group-item">d)  <img src="../assets/examfiles/<%=ans4%>" /> </li>
+
+              <%   else  %>
+
+              <li class="list-group-item">a) <%=ans1%></li>
+              <li class="list-group-item">b) <%=ans2%></li>
+              <li class="list-group-item">c) <%=ans3%></li>
+              <li class="list-group-item">d) <%=ans4%></li>
+
+
+              <%   end  %>
+
+              <li class="list-group-item correctans">
+                
+                <span>Correct:</span> <%=correctans%>
+                <span> Mark: <%=marks_each%> </span>
+
+              </li>
+
+              <% if @createArray_quesid_ans[qid] != correctans 
+
+              %>
+                  <li class="list-group-item" style="background-color:red;color: #FFF; padding:  6px 12px">
+                  
+                    <i>Attempted By You :</i> <%=@createArray_quesid_ans[qid]%>
+                    <span>  Wrong </span>
+                  </li>
+              <%
+                else
+              %>
+                 <li class="list-group-item" style="background-color:#3f5802;color: #FFF; padding:  6px 12px">
+                  
+                   <i>Attempted By You :</i> <%=@createArray_quesid_ans[qid]%>
+                  <span> Correct </span>
+                </li>
+
+              <%
+
+                end
+              %>
+
+             
+
+            </ul>
+
+          </li>
+
+  <% 
+    sno += 1
+
+    end 
+
+  %>
+         
+  
+
+        </ul>
+
+        </div>
+
+
+      </div>
+
+<%
+    else
+%>
+
+  <div class="table-responsive">
+
+  <table class="table table-hover">
+   
+   <thead>
+      <tr>
+        <th>S.NO</th>
+        <th>Test Name</th>
+        <th>Assign By</th>       
+        <th>Marks</th>
+        <th>Garde</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+  
+  <%
+  
+  if @resultData.present? 
+
+      s = 1
+  
+      @resultData.each do |val|
+        
+        test_id = val["test_id"]
+        user_id = val["user_id"]
+        attempted_no_of_qus = val["attempted_no_of_qus"]
+        correct_no_of_qus   = val["correct_no_of_qus"]
+        total_marks         = val["total_marks"]
+        grade               = val["grade"]
+        attempt_date        = val["attempt_date"]
+        qus_ids             = val["qus_ids"]
+
+        @getTestData = OnlineTestName.find(test_id)
+        
+        #Get Teacher Name
+
+        @getTeacherData = User.find(@getTestData.uid)
+
+  %>          
+      <tr>        
+          <td> <%=s%> </td>
+          <td> <%=  @getTestData.test_name %> </td>
+          <td>  
+          <a href="<%= request.base_url%>/profile?userid=<%=@getTestData.uid%>" target="_BLANK">
+          <%= @getTeacherData.firstname %> <%=  @getTeacherData.lastname %> 
+          </a>
+          </td>       
+          <td> <%=total_marks%> / <%=  @getTestData.total_marks  %></td>
+          <td> <%=grade%> </td>
+          <td> <a href="<%= request.base_url%>/view-results/<%=val["id"]%>" class="btn btn-primary">View Result</a> </td>
+      </tr>
+
+  <%    
+          s = s+1
+    end
+
+    else 
+
+      %>
+
+      <tr> 
+        <td colspan="6">
+          <div class="list-group-item" style="text-align: center;"> Not Found </div> 
+        </td>
+      </tr>
+      
+      <%
+
+    end
+%>
+
+</tbody>
+</table>
+
+</div>
+
+<%
+end
+%>
+
+
+
+
+
